@@ -1,0 +1,15 @@
+{
+	"compilerOptions": {
+		"module": "commonjs",
+		"noImplicitReturns": true,
+		"noUnusedLocals": false,
+		"outDir": "dist",
+		"sourceMap": true,
+		"strict": false,
+		"target": "es2021",
+		"resolveJsonModule": true,
+		"esModuleInterop": true
+	},
+	"include": ["src/**/*.ts"],
+	"exclude": ["node_modules", "lib", "**/__tests__/*"]
+}
