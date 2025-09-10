@@ -1,5 +1,6 @@
 import multer, { Multer } from 'multer'
 import { Request, Response } from 'express'
+import axios from 'axios'
 
 // Extend Express Request type to include Multer's file property
 declare global {
@@ -51,8 +52,8 @@ export class Server extends CloudRunBase {
 
 		// status endpoint with id
 		this.app.get('/status/:id', async (req: Request, res: Response) => {
-			console.log(`Received status request`)
 			const { id } = req.params
+			console.log(`Received status request ${id}`)
 			try {
 				const edgeCloud = new EdgeCloudClient(THETA_EDGECLOUD_TOKEN)
 				const status = await edgeCloud.getInferRequest(id)
@@ -61,6 +62,27 @@ export class Server extends CloudRunBase {
 			} catch (err: any) {
 				console.error(`Error fetching status for id ${id}:`, err)
 				return res.status(500).send(`Internal Server Error: Failed to fetch status for id ${id}.`)
+			}
+		})
+
+		// get file from url and stream as blob to the caller of the webpage (using axios)
+		this.app.get('/fetch/:path', async (req: Request, res: Response) => {
+			// https://ondemand-outputs.thetaedgecloud.com/srvc_e37azmytfn2bspxak9228q46r83/prj_qwavch29ftp965zfxi7vrzsfs2kq/infr_rqst_zgz37z6eew84a54r1c6chd_image_url.jpg
+
+			const { path } = req.params
+			if (!path || typeof path !== 'string') return res.status(400).send('No path provided.')
+			const url = decodeURIComponent(`https://ondemand-outputs.thetaedgecloud.com/${path}`)
+			try {
+				const response = await axios.get(url, { responseType: 'stream' })
+				res.setHeader('Content-Type', response.headers['content-type'] || 'application/octet-stream')
+				if (response.headers['content-length']) {
+					res.setHeader('Content-Length', response.headers['content-length'])
+				}
+				return response.data.pipe(res)
+				
+			} catch (error) {
+				console.error(`Error fetching image from URL ${url}:`, error)
+				return res.status(500).send(`Internal Server Error: Failed to fetch image from URL.`)
 			}
 		})
 	}
